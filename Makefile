@@ -1,13 +1,25 @@
-CC=gcc
-TARGET=main
+APP = demo
+TARGET = $(APP).out
+
+CC  = g++
+
+SRCS = $(wildcard *.cpp)
+OBJS = $(SRCS:.cpp=.o)
+LIBS = -lGLEW -lglfw -lGL
+
+CPPFLAGS= -Wall -std=c++11
+LDFLAGS = $(LIBS)
 
 all:$(TARGET)
 
-$(TARGET): $(TARGET).o
-	$(CC) $< -lGLEW -lglfw -lGL -o $(TARGET)
+$(TARGET): $(OBJS) 
+	$(CC) $^ $(LDFLAGS) -o $@
 
-$(TARGET).o: $(TARGET).c
-	$(CC) -c $<
+%.o: %.cpp
+	$(CC) -c $< $(CPPFLAGS)
 
 run: $(TARGET)
-	./$(TARGET)
+	./$<
+
+clean: 
+	rm -f *.o
