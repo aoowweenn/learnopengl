@@ -16,36 +16,40 @@ using namespace std;
 #define HEIGHT  (600)
 #define TITLE   "MY GL TEST"
 
-tuple<GLuint, GLuint, GLuint> make_triangle()
+void bindObject(GLuint& VBO, GLuint& VAO, GLuint& EBO, GLsizeiptr VBOsize, const GLvoid* VBOdata, GLsizeiptr EBOsize, GLvoid* EBOdata)
 {
     // Vertex Array Object -> Vertex Buffer Object -> vertices data
-
-    GLuint VBO;
+    
     glGenBuffers(1, &VBO);
-
-    GLuint VAO;
     glGenVertexArrays(1, &VAO);
 
-    const auto vertices = createTriangle();
-    assert(vertices.size() == 9);
-
     glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO); 
+    glBufferData(GL_ARRAY_BUFFER, VBOsize, VBOdata, GL_STATIC_DRAW);
+
+    if(EBOsize != 0)
+    {
+        glGenBuffers(1, &EBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, EBOsize, EBOdata, GL_STATIC_DRAW);
+    }
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0); // unbind VAO
-    
-    // create shader program
+}
+
+GLuint loadProgram(const char* programName)
+{
+    string basename = string(programName);
 
     GLuint vertexShader, fragmentShader;
 
-    vertexShader = loadShader(GL_VERTEX_SHADER, "tri.vert");
-    fragmentShader = loadShader(GL_FRAGMENT_SHADER, "tri.frag");
+    vertexShader = loadShader(GL_VERTEX_SHADER, basename + ".vert");
+    fragmentShader = loadShader(GL_FRAGMENT_SHADER, basename + ".frag");
 
     GLuint shaderProgram;
     shaderProgram = glCreateProgram();
@@ -68,7 +72,33 @@ tuple<GLuint, GLuint, GLuint> make_triangle()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
+    return shaderProgram;
+}
+
+tuple<GLuint, GLuint, GLuint> make_triangle()
+{
+    const auto vertices = createTriangle();
+
+    GLuint VBO, VAO, EBO;
+    bindObject(VBO, VAO, EBO, sizeof(vertices[0]) * vertices.size(), vertices.data(), 0, nullptr);
+
+    GLuint shaderProgram = loadProgram("tri");
+
     return make_tuple(VAO, VBO, shaderProgram);
+}
+
+tuple<GLuint, GLuint, GLuint, GLuint> make_rectangle()
+{
+    array<GLfloat, 12> vertices;
+    array<GLuint, 6> indices;
+    tie(vertices, indices) = createRectangle();
+
+    GLuint VBO, VAO, EBO;
+    bindObject(VBO, VAO, EBO, sizeof(vertices[0]) * vertices.size(), vertices.data(), sizeof(indices[0]) * indices.size(), indices.data());
+
+    GLuint shaderProgram = loadProgram("rec");
+
+    return make_tuple(VAO, VBO, EBO, shaderProgram);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
@@ -114,6 +144,9 @@ int main()
         exit(-1);
     }
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
@@ -121,6 +154,9 @@ int main()
     
     GLuint triVAO, triVBO, triProg;
     tie(triVAO, triVBO, triProg) = make_triangle();
+
+    GLuint recVAO, recVBO, recEBO, recProg;
+    tie(recVAO, recVBO, recEBO, recProg) = make_rectangle();
 
     double time = glfwGetTime();
     double currTime;
@@ -135,7 +171,13 @@ int main()
         glUseProgram(triProg);
         glBindVertexArray(triVAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        //glBindVertexArray(0);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glUseProgram(recProg);
+        glBindVertexArray(recVAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         glfwSwapBuffers(window);
 

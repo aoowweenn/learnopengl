@@ -21,7 +21,7 @@ const char* loadCStringFromFile(string filename)
     return buffer;
 }
 
-GLuint loadShader(GLenum shaderType, const char* filename)
+GLuint loadShader(GLenum shaderType, std::string filename)
 {
     GLuint shader = glCreateShader(shaderType);
 

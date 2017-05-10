@@ -1,3 +1,4 @@
 #include <GL/glew.h>
+#include <string>
 
-GLuint loadShader(GLenum shaderType, const char* filename);
+GLuint loadShader(GLenum shaderType, std::string filename);
